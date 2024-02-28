@@ -21,6 +21,20 @@ class _AppDrawerState extends State<AppDrawer> {
     super.initState();
   }
 
+  void login() async {
+    await AuthService.instance.login();
+  }
+
+  void signup() async {
+    await AuthService.instance.signup();
+  }
+
+  void logout() async {
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (context) => const HomePage()));
+    await AuthService.instance.logout();
+  }
+
   @override
   Widget build(BuildContext context) {
     void login() async {
