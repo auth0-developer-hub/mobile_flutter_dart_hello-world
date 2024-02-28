@@ -44,11 +44,6 @@ class _HomePageState extends State<HomePage> {
     }
   ];
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
   openUrl(urlString) async {
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url)) {
