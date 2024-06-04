@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:auth0_flutter/auth0_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:helloworld/pages/home.dart';
@@ -19,10 +22,30 @@ class ProfileData {
 }
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({Key? key, required this.user}) : super(key: key);
+
+  final UserProfile user;
 
   @override
   Widget build(BuildContext context) {
+    JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+
+    String prettyprint = encoder.convert({
+      "address": user.address,
+      "birthdate": user.birthdate,
+      "email": user.email,
+      "name": user.name,
+      "givenName": user.givenName,
+      "middleName": user.middleName,
+      "familyName": user.familyName,
+      "profileUrl": user.profileUrl.toString(),
+      "customClaims": user.customClaims,
+      "gender": user.gender,
+      "isEmailVerified": user.isEmailVerified,
+      "isPhoneNumberVerified": user.isPhoneNumberVerified,
+      "pictureUrl": user.pictureUrl.toString(),
+    });
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
@@ -53,30 +76,35 @@ class ProfilePage extends StatelessWidget {
           const Text('Only authenticated users can access this page.',
               style: TextStyle(fontSize: 16, color: Colors.white)),
           const SizedBox(height: 20),
+
+          // user information
           Row(
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.all(Radius.circular((25))),
                 child: Image.network(
-                  'https://cdn.auth0.com/blog/hello-auth0/auth0-user.png',
+                  user.pictureUrl.toString(),
                   fit: BoxFit.fill,
                   height: 50,
                   width: 50,
                 ),
               ),
               const SizedBox(width: 10),
-              const Column(
+              Expanded(
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('One Customer',
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white)),
-                  Text('customer@example.com',
-                      style: TextStyle(fontSize: 14, color: Colors.white))
+                  Text(
+                    user.name != null ? user.name! : '',
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                  ),
+                  Text(user.email != null ? user.email! : '',
+                      style: const TextStyle(fontSize: 14, color: Colors.white))
                 ],
-              )
+              ))
             ],
           ),
           const SizedBox(height: 20),
@@ -105,21 +133,15 @@ class ProfilePage extends StatelessWidget {
                   borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(10),
                       bottomRight: Radius.circular(10))),
-              child: Text(
-                const JsonEncoder.withIndent('  ').convert({
-                  "nickname": "Customer",
-                  "name": "One Customer",
-                  "picture":
-                      "https://cdn.auth0.com/blog/hello-auth/auth0-user.png",
-                  "updated_at": "2021-05-04T21:33:09.415Z",
-                  "email": "customer@example.com",
-                  "email_verified": false,
-                  "sub": "auth0|12345678901234567890"
-                }),
-                style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontFamily: 'RobotoMono'),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Text(
+                  prettyprint,
+                  style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontFamily: 'RobotoMono'),
+                ),
               ))
         ]),
       ),
