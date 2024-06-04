@@ -1,6 +1,8 @@
 import 'package:helloworld/pages/home.dart';
+import 'package:helloworld/helpers/constants.dart';
 import 'package:helloworld/widgets/app_drawer.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -19,6 +21,16 @@ class PublicData {
   }
 }
 
+Future<PublicData> fetchPublicData() async {
+  final response = await http.get(Uri.parse('$serverUrl/api/messages/public'));
+
+  if (response.statusCode == 200) {
+    return PublicData.fromJson(jsonDecode(response.body));
+  } else {
+    throw response.body;
+  }
+}
+
 class PublicPage extends StatefulWidget {
   const PublicPage({super.key});
 
@@ -27,9 +39,11 @@ class PublicPage extends StatefulWidget {
 }
 
 class _PublicPageState extends State<PublicPage> {
+  late Future<PublicData> publicData;
   @override
   void initState() {
     super.initState();
+    publicData = fetchPublicData();
   }
 
   @override
@@ -95,14 +109,38 @@ class _PublicPageState extends State<PublicPage> {
                   borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(10),
                       bottomRight: Radius.circular(10))),
-              child: Text(
-                const JsonEncoder.withIndent('  ')
-                    .convert({"message": "This is a public message"}),
-                style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontFamily: 'RobotoMono'),
-              ))
+              child: FutureBuilder<PublicData>(
+                  future: publicData,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+                      String message =
+                          encoder.convert({'text': snapshot.data?.text});
+                      return Text(
+                        message,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontFamily: 'RobotoMono'),
+                      );
+                    } else {
+                      JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+                      String message = encoder.convert({
+                        "message":
+                            "Http failure response for http://localhost:6060/api/messages/public: 0 Unknown Error"
+                      });
+                      if (snapshot.hasError) {
+                        message = snapshot.error.toString();
+                      }
+                      return Text(
+                        message,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontFamily: 'RobotoMono'),
+                      );
+                    }
+                  }))
         ]),
       ),
     );

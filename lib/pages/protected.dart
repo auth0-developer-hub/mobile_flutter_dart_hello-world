@@ -1,9 +1,12 @@
 import 'package:helloworld/pages/home.dart';
+import 'package:helloworld/helpers/constants.dart';
 import 'package:helloworld/widgets/app_drawer.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:auth0_flutter/auth0_flutter.dart';
 
 class ProtectedData {
   final String text;
@@ -26,11 +29,31 @@ class ProtectedPage extends StatefulWidget {
   State<ProtectedPage> createState() => _ProtectedPageState();
 }
 
+Future<ProtectedData> fetchProtectedData() async {
+  Auth0 auth0 = Auth0(auth0Domain, auth0ClientId);
+
+  // setting the audience here doesn't seem to work
+  final credentials = await auth0.credentialsManager
+      .credentials(parameters: {'audience': auth0Audience});
+  final String accessToken = credentials.accessToken;
+  final response = await http.get(
+    Uri.parse('$serverUrl/api/messages/protected'),
+    headers: {'Authorization': 'Bearer $accessToken'},
+  );
+
+  if (response.statusCode == 200) {
+    return ProtectedData.fromJson(jsonDecode(response.body));
+  } else {
+    throw response.body;
+  }
+}
+
 class _ProtectedPageState extends State<ProtectedPage> {
   late Future<ProtectedData> protectedData;
   @override
   void initState() {
     super.initState();
+    protectedData = fetchProtectedData();
   }
 
   @override
@@ -96,14 +119,38 @@ class _ProtectedPageState extends State<ProtectedPage> {
                   borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(10),
                       bottomRight: Radius.circular(10))),
-              child: Text(
-                const JsonEncoder.withIndent('  ')
-                    .convert({"message": "This is a protected message"}),
-                style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontFamily: 'RobotoMono'),
-              ))
+              child: FutureBuilder<ProtectedData>(
+                  future: protectedData,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+                      String message =
+                          encoder.convert({'text': snapshot.data?.text});
+                      return Text(
+                        message,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontFamily: 'RobotoMono'),
+                      );
+                    } else {
+                      JsonEncoder encoder = const JsonEncoder.withIndent('  ');
+                      String message = encoder.convert({
+                        "message":
+                            "Http failure response for http://localhost:6060/api/messages/protected: 0 Unknown Error"
+                      });
+                      if (snapshot.hasError) {
+                        message = snapshot.error.toString();
+                      }
+                      return Text(
+                        message,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontFamily: 'RobotoMono'),
+                      );
+                    }
+                  }))
         ]),
       ),
     );

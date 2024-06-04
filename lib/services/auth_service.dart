@@ -11,6 +11,7 @@ class AuthService {
   AuthService._internal();
 
   Future init() async {
+    auth0 = Auth0(auth0Domain, auth0ClientId);
     final isLoggedIn = await auth0.credentialsManager.hasValidCredentials();
     if (isLoggedIn) {
       final credentials = await auth0.credentialsManager.credentials();
